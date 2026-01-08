@@ -15,7 +15,7 @@ import google.generativeai as genai
 # Config
 # =====================================================
 APP_TZ = ZoneInfo("Asia/Tokyo")
-DB_PATH = os.getenv("DB_PATH", "learning_app.sqlite")
+DB_PATH = os.getenv("DB_PATH", "learning_app_v3.sqlite")
 
 EXPECTED_COLUMNS = [
     "管理用ID",
@@ -706,6 +706,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
