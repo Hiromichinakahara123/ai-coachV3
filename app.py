@@ -19,22 +19,24 @@ DB_PATH = os.getenv("DB_PATH", "learning_app.sqlite")
 
 EXPECTED_COLUMNS = [
     "管理用ID",
-    "問題文",
+    "問題",
     "選択肢１",
     "選択肢２",
     "選択肢３",
     "選択肢４",
     "選択肢５",
-    "正解",
-    "レベル：1〜4",
+    "正答",
+    "レベル",
+    "解説",
     "主概念",
     "関連概念",
     "要求理解",
     "戻すレベル",
     "戻す概念",
-    "簡潔な理由（1〜2行）",
+    "簡潔な理由",
     "教員メモ",
 ]
+
 
 
 # =====================================================
@@ -52,12 +54,26 @@ def init_db():
     cur = conn.cursor()
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS question_sets (
+    CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        created_at TEXT
+        question_set_id INTEGER,
+        qid TEXT,
+        question_text TEXT,
+        choices_json TEXT,
+        correct TEXT,
+        level INTEGER,
+        primary_concept TEXT,
+        related_concepts TEXT,
+        required_understanding TEXT,
+        fallback_level INTEGER,
+        fallback_concept TEXT,
+        short_reason TEXT,
+        teacher_memo TEXT,
+        explanation TEXT,   -- ★追加
+        UNIQUE(question_set_id, qid)
     )
     """)
+
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS questions (
@@ -133,7 +149,7 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
     inserted = 0
     for _, r in df.iterrows():
         qid = str(r.get("管理用ID", "")).strip()
-        qtext = str(r.get("問題文", "")).strip()
+        qtext = str(r.get("問題", "")).strip()
 
         choices = {
             "1": str(r.get("選択肢１", "")).strip(),
@@ -143,8 +159,8 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
             "5": str(r.get("選択肢５", "")).strip(),
         }
 
-        correct_raw = str(r.get("正解", "")).strip()
-        # "1"〜"5" 以外（例: "A"）が来た場合の簡易変換
+        correct_raw = str(r.get("正答", "")).strip()
+        # 1-5 / A-E どちらでも受ける
         correct_map = {"A": "1", "B": "2", "C": "3", "D": "4", "E": "5"}
         correct = correct_map.get(correct_raw.upper(), correct_raw)
         if correct not in {"1", "2", "3", "4", "5"}:
@@ -158,18 +174,18 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
             except Exception:
                 return default
 
-        level = to_int(r.get("レベル：1〜4"), default=4)
+        level = to_int(r.get("レベル"), default=4)
         fallback_level = to_int(r.get("戻すレベル"), default=max(1, level - 1))
 
+        explanation = str(r.get("解説", "")).strip()
         primary_concept = str(r.get("主概念", "")).strip()
         related_concepts = str(r.get("関連概念", "")).strip()
         required_understanding = str(r.get("要求理解", "")).strip()
         fallback_concept = str(r.get("戻す概念", "")).strip()
-        short_reason = str(r.get("簡潔な理由（1〜2行）", "")).strip()
+        short_reason = str(r.get("簡潔な理由", "")).strip()
         teacher_memo = str(r.get("教員メモ", "")).strip()
 
         if not qid:
-            # ID空なら自動採番（安定化）
             qid = f"AUTO_{hash(qtext) & 0xfffffff}"
 
         if not qtext:
@@ -188,8 +204,13 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
         ))
         inserted += 1
 
+        # 「解説」はDBに持たせたい場合（任意）：
+        # → いまのDBスキーマには explanation列が無いので、
+        #   使うならテーブルに列追加が必要です（後述）。
+
     conn.commit()
     return inserted
+
 
 
 def load_questions(question_set_id: int) -> list[dict]:
@@ -536,13 +557,15 @@ def main():
         st.markdown("### 問題")
         st.write(q["question_text"])
 
-        choices = json.loads(q["choices_json"])
-        opt = st.radio(
-            "選択肢",
-            options=["1", "2", "3", "4", "5"],
-            format_func=lambda k: f"{k}: {choices.get(k,'')}",
-            key=f"choice_{q['id']}"
-        )
+       choices = json.loads(q["choices_json"])
+
+        st.markdown("### 選択肢")
+        for k in ["1", "2", "3", "4", "5"]:
+            # LaTeXの$...$が綺麗にレンダリングされる
+            st.markdown(f"**{k}.** {choices.get(k,'')}")
+
+        opt = st.radio("解答（番号を選択）", options=["1", "2", "3", "4", "5"], key=f"choice_{q['id']}")
+
 
         if st.button("解答する"):
             correct = str(q["correct"])
@@ -678,3 +701,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
