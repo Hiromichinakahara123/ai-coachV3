@@ -547,6 +547,7 @@ def main():
             )
             st.session_state.current = nxt
 
+        # ---------- 問題表示 ----------
         q = st.session_state.current
         if q is None:
             st.success("🎉 すべての問題が終了しました！")
@@ -557,6 +558,7 @@ def main():
         st.markdown("### 問題")
         st.write(q["question_text"])
 
+        # ---------- 選択肢（LaTeX対応） ----------
        choices = json.loads(q["choices_json"])
 
         st.markdown("### 選択肢")
@@ -564,9 +566,13 @@ def main():
             # LaTeXの$...$が綺麗にレンダリングされる
             st.markdown(f"**{k}.** {choices.get(k,'')}")
 
-        opt = st.radio("解答（番号を選択）", options=["1", "2", "3", "4", "5"], key=f"choice_{q['id']}")
+        selected = st.radio(
+            "解答（番号を選択）",
+            options=["1", "2", "3", "4", "5"],
+            key=f"choice_{q['id']}"
+        )
 
-
+      # ---------- 解答処理 ----------
         if st.button("解答する"):
             correct = str(q["correct"])
             is_correct = (opt == correct)
@@ -594,40 +600,39 @@ def main():
                     short_reason=q.get("short_reason", "")
                 )
 
-            log_answer(student_id, int(q["id"]), opt, is_correct, coach)
-
+            log_answer(
+                student_id=student_id,
+                question_id=int(q["id"]),
+                selected=selected,
+                is_correct=is_correct,
+                coach_json=coach
+            )
+            
             st.session_state.answered_ids.add(int(q["id"]))
             st.session_state.last_result = {"is_correct": is_correct, "coach": coach}
             st.session_state.last_question = q
 
             # pick next
-            nxt = pick_next_question(
+            st.session_state.current = pick_next_question(
                 st.session_state.questions,
                 st.session_state.answered_ids,
                 st.session_state.last_result,
                 st.session_state.last_question
             )
-            st.session_state.current = nxt
-
+            
             # show feedback on same run
             if is_correct:
                 st.success("正解です 🎉")
             else:
                 st.error(f"不正解です。正解は「{correct}」です。")
 
-            st.markdown("### 簡潔な理由（先生の設計）")
-            if q.get("short_reason"):
-                st.write(q["short_reason"])
-            else:
-                st.write("（未記入）")
+            st.markdown("### 簡潔な理由")
+            st.markdown(q.get("short_reason", "（未記入）"))
 
             st.markdown("### AIコーチング")
             st.info(coach.get("summary", ""))
-            if coach.get("next_hint"):
-                st.caption(f"次の方針：{coach['next_hint']}")
 
             st.divider()
-            st.button("次へ進む", on_click=lambda: None)
             st.rerun()
 
     with tab3:
@@ -701,4 +706,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
