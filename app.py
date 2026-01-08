@@ -559,7 +559,7 @@ def main():
         st.write(q["question_text"])
 
         # ---------- 選択肢（LaTeX対応） ----------
-       choices = json.loads(q["choices_json"])
+        choices = json.loads(q["choices_json"])
 
         st.markdown("### 選択肢")
         for k in ["1", "2", "3", "4", "5"]:
@@ -706,5 +706,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
