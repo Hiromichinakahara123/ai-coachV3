@@ -114,21 +114,26 @@ def get_or_create_student(student_key: str) -> int:
     if row:
         return int(row["id"])
 
-    cur.execute("INSERT INTO students(student_key) VALUES (?)", (student_key,))
+    cur.execute(
+        "INSERT INTO students(student_key) VALUES (%s) RETURNING id",
+        (student_key,)
+    )
+    sid = cur.fetchone()["id"]
     conn.commit()
-    return int(cur.lastrowid)
+    return int(sid)
+
 
 
 def create_question_set(title: str) -> int:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO question_sets(title, created_at) VALUES (?, ?)",
-        (title, datetime.now(APP_TZ).isoformat())
+        "INSERT INTO question_sets(title, created_at) VALUES (%s, %s) RETURNING id",
+        (title, datetime.now(APP_TZ))
     )
+    qid = cur.fetchone()["id"]
     conn.commit()
-    return int(cur.lastrowid)
-
+    return int(qid)
 
 def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
     conn = get_conn()
@@ -203,7 +208,7 @@ def load_questions(question_set_id: int) -> list[dict]:
     cur = conn.cursor()
     cur.execute("""
     SELECT * FROM questions
-    WHERE question_set_id = ?
+    WHERE question_set_id = %s
     ORDER BY level ASC, id ASC
     """, (question_set_id,))
     rows = cur.fetchall()
@@ -215,13 +220,13 @@ def log_answer(student_id: int, question_id: int, selected: str, is_correct: boo
     cur = conn.cursor()
     cur.execute("""
     INSERT INTO answers(student_id, question_id, selected, is_correct, answered_at, coach_json)
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (%s, %s, %s, %s, %s, %s)
     """, (
         student_id,
         question_id,
         selected,
         1 if is_correct else 0,
-        datetime.now(APP_TZ).isoformat(),
+        datetime.now(APP_TZ)
         json.dumps(coach_json, ensure_ascii=False) if coach_json else None
     ))
     conn.commit()
@@ -242,7 +247,7 @@ def get_student_history(student_id: int, question_set_id: int) -> pd.DataFrame:
         q.fallback_concept
     FROM answers a
     JOIN questions q ON a.question_id = q.id
-    WHERE a.student_id = ? AND q.question_set_id = ?
+    WHERE a.student_id = %s AND q.question_set_id = %s
     ORDER BY a.id
     """
     return pd.read_sql_query(q, conn, params=(student_id, question_set_id))
@@ -264,7 +269,7 @@ def safe_json_extract(text: str) -> dict | None:
     if not text:
         return None
     # remove code fences
-    t = re.sub(r"```(?:json)?", "", text).replace("```", "").strip()
+    t = re.sub(r"```(%s:json)%s", "", text).replace("```", "").strip()
     # find first { ... }
     start = t.find("{")
     end = t.rfind("}")
@@ -681,8 +686,8 @@ def main():
             cur = conn.cursor()
             cur.execute("""
             DELETE FROM answers
-            WHERE student_id = ?
-              AND question_id IN (SELECT id FROM questions WHERE question_set_id = ?)
+            WHERE student_id = %s
+              AND question_id IN (SELECT id FROM questions WHERE question_set_id = %s)
             """, (student_id, st.session_state.question_set_id))
             conn.commit()
             st.success("リセットしました。")
@@ -691,6 +696,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
