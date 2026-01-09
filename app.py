@@ -16,8 +16,6 @@ import google.generativeai as genai
 # Config
 # =====================================================
 APP_TZ = ZoneInfo("Asia/Tokyo")
-DB_PATH = os.getenv("DB_PATH", "learning_app_v3.sqlite")
-
 EXPECTED_COLUMNS = [
     "管理用ID",
     "問題",
@@ -111,7 +109,7 @@ def get_or_create_student(student_key: str) -> int:
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM students WHERE student_key = ?", (student_key,))
+    cur.execute("SELECT id FROM students WHERE student_key = %s", (student_key,))
     row = cur.fetchone()
     if row:
         return int(row["id"])
@@ -182,17 +180,14 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
             continue
 
         cur.execute("""
-        INSERT OR REPLACE INTO questions(
-            question_set_id, qid, question_text, choices_json, correct,
-            level, primary_concept, related_concepts, required_understanding,
-            fallback_level, fallback_concept, short_reason, teacher_memo
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            question_set_id, qid, qtext, json.dumps(choices, ensure_ascii=False), correct,
-            level, primary_concept, related_concepts, required_understanding,
-            fallback_level, fallback_concept, short_reason, teacher_memo
-        ))
-        inserted += 1
+        INSERT INTO questions (...)
+        VALUES (...)
+        ON CONFLICT (question_set_id, qid)
+        DO UPDATE SET
+          question_text = EXCLUDED.question_text,
+          choices_json = EXCLUDED.choices_json,
+          correct = EXCLUDED.correct;
+
 
         # 「解説」はDBに持たせたい場合（任意）：
         # → いまのDBスキーマには explanation列が無いので、
@@ -696,6 +691,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
