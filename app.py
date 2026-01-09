@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
+import psycopg
+from psycopg.rows import dict_row
 import json
 import os
 from datetime import datetime
@@ -44,34 +45,31 @@ EXPECTED_COLUMNS = [
 # =====================================================
 #@st.cache_resource
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg.connect(
+        os.environ["DATABASE_URL"],
+        row_factory=dict_row
+    )
 
 
 def init_db():
-    cur.execute("""
-    PRAGMA foreign_keys = ON
-    """)
-
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS question_sets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
-        created_at TEXT
+        created_at TIMESTAMPTZ
     )
     """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS questions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        question_set_id INTEGER,
+        id SERIAL PRIMARY KEY,
+        question_set_id INTEGER REFERENCES question_sets(id) ON DELETE CASCADE,
         qid TEXT,
         question_text TEXT,
-        choices_json TEXT,
+        choices_json JSONB,
         correct TEXT,
         level INTEGER,
         primary_concept TEXT,
@@ -81,36 +79,32 @@ def init_db():
         fallback_concept TEXT,
         short_reason TEXT,
         teacher_memo TEXT,
-        explanation TEXT,   -- ★追加
+        explanation TEXT,
         UNIQUE(question_set_id, qid)
-        FOREIGN KEY (question_set_id) REFERENCES question_sets(id)
     )
     """)
 
-
-
     cur.execute("""
     CREATE TABLE IF NOT EXISTS students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         student_key TEXT UNIQUE
     )
     """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS answers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER,
-        question_id INTEGER,
-        selected TEXT,              -- "1"〜"5"
-        is_correct INTEGER,         -- 0/1
-        answered_at TEXT,
-        coach_json TEXT             -- {"summary":..., "missing_level":..., ...}
-        FOREIGN KEY (student_id) REFERENCES students(id),
-        FOREIGN KEY (question_id) REFERENCES questions(id)
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+        question_id INTEGER REFERENCES questions(id) ON DELETE CASCADE,
+        selected TEXT,
+        is_correct BOOLEAN,
+        answered_at TIMESTAMPTZ,
+        coach_json JSONB
     )
     """)
 
     conn.commit()
+
 
 
 def get_or_create_student(student_key: str) -> int:
@@ -702,6 +696,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
