@@ -244,7 +244,7 @@ def log_answer(student_id: int, question_id: int, selected: str, is_correct: boo
         question_id,
         selected,
         1 if is_correct else 0,
-        datetime.now(APP_TZ)
+        datetime.now(APP_TZ),
         json.dumps(coach_json, ensure_ascii=False) if coach_json else None
     ))
     conn.commit()
@@ -721,5 +721,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
