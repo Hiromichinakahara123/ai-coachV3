@@ -184,19 +184,37 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
         if not qtext:
             continue
 
-        cur.execute("""
-        INSERT INTO questions (...)
-        VALUES (...)
-        ON CONFLICT (question_set_id, qid)
-        DO UPDATE SET
-          question_text = EXCLUDED.question_text,
-          choices_json = EXCLUDED.choices_json,
-          correct = EXCLUDED.correct;
+        cur.execute(
+            """
+            INSERT INTO questions (
+                question_set_id, qid, question_text,
+                choices_json, correct, level,
+                primary_concept, related_concepts,
+                required_understanding, fallback_level,
+                fallback_concept, short_reason,
+                teacher_memo, explanation
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            ON CONFLICT (question_set_id, qid)
+            DO UPDATE SET
+              question_text = EXCLUDED.question_text,
+              choices_json = EXCLUDED.choices_json,
+              correct = EXCLUDED.correct
+            """,
+            (
+                question_set_id, qid, qtext,
+                json.dumps(choices, ensure_ascii=False),
+                correct, level,
+                primary_concept, related_concepts,
+                required_understanding, fallback_level,
+                fallback_concept, short_reason,
+                teacher_memo, explanation
+            )
+        )
 
-
-        # 「解説」はDBに持たせたい場合（任意）：
-        # → いまのDBスキーマには explanation列が無いので、
-        #   使うならテーブルに列追加が必要です（後述）。
 
     conn.commit()
     return inserted
@@ -703,4 +721,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
