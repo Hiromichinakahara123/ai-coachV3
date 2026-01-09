@@ -353,6 +353,7 @@ def ai_coach_diagnose(
 ・missing_levelは、戻すレベル/戻す概念の情報も参考にしつつ推定してください。
 ・暗記ではなく因果や概念のつながりに言及してください。
 """
+    
     model = genai.GenerativeModel(
         "gemini-2.5-flash-lite",
         generation_config={"temperature": 0.2, "max_output_tokens": 450}
@@ -695,6 +696,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
