@@ -317,7 +317,7 @@ def ai_coach_diagnose(
             "next_hint": f"戻すレベル {fallback_level} の確認問題へ"
         }
 
-    prompt = f"""
+prompt = f"""
     あなたは薬学教育の個別指導コーチです。目的は叱責や評価ではなく、「なぜ解けなかったか」を理解の階段に沿って言語化し、
 次に何を学べばよいかを短く示すことです。
 
@@ -696,6 +696,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
