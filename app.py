@@ -50,8 +50,20 @@ def get_conn():
 
 
 def init_db():
+    cur.execute("""
+    PRAGMA foreign_keys = ON
+    """)
+
     conn = get_conn()
     cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS question_sets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        created_at TEXT
+    )
+    """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS questions (
@@ -71,29 +83,11 @@ def init_db():
         teacher_memo TEXT,
         explanation TEXT,   -- ★追加
         UNIQUE(question_set_id, qid)
+        FOREIGN KEY (question_set_id) REFERENCES question_sets(id)
     )
     """)
 
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS questions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        question_set_id INTEGER,
-        qid TEXT,
-        question_text TEXT,
-        choices_json TEXT,          -- {"1": "...", ..., "5": "..."}
-        correct TEXT,               -- "1"〜"5"
-        level INTEGER,              -- 1〜4
-        primary_concept TEXT,
-        related_concepts TEXT,      -- "A, B, C"
-        required_understanding TEXT,
-        fallback_level INTEGER,
-        fallback_concept TEXT,
-        short_reason TEXT,
-        teacher_memo TEXT,
-        UNIQUE(question_set_id, qid)
-    )
-    """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS students (
@@ -111,6 +105,8 @@ def init_db():
         is_correct INTEGER,         -- 0/1
         answered_at TEXT,
         coach_json TEXT             -- {"summary":..., "missing_level":..., ...}
+        FOREIGN KEY (student_id) REFERENCES students(id),
+        FOREIGN KEY (question_id) REFERENCES questions(id)
     )
     """)
 
@@ -706,6 +702,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
