@@ -316,46 +316,46 @@ def ai_coach_diagnose(
             ),
             "next_hint": f"戻すレベル {fallback_level} の確認問題へ"
         }
+        
 
-    prompt = f"""
-    。。。"""
+prompt = (
+    "あなたは薬学教育の個別指導コーチです。"
+    "目的は叱責や評価ではなく、「なぜ解けなかったか」を理解の階段に沿って言語化し、"
+    "次に何を学べばよいかを短く示すことです。\n\n"
 
-    prompt = f"""
-    あなたは薬学教育の個別指導コーチです。目的は叱責や評価ではなく、「なぜ解けなかったか」を理解の階段に沿って言語化し、
-    次に何を学べばよいかを短く示すことです。
-    
-【入力】
-- 問題レベル(1-4): {level}
-- 主概念: {primary_concept}
-- 要求理解: {required_understanding}
-- 戻すレベル: {fallback_level}
-- 戻す概念: {fallback_concept}
+    "【入力】\n"
+    f"- 問題レベル(1-4): {level}\n"
+    f"- 主概念: {primary_concept}\n"
+    f"- 要求理解: {required_understanding}\n"
+    f"- 戻すレベル: {fallback_level}\n"
+    f"- 戻す概念: {fallback_concept}\n\n"
 
-問題文:
-{question_text}
+    "問題文:\n"
+    f"{question_text}\n\n"
 
-選択肢:
-{json.dumps(choices, ensure_ascii=False)}
+    "選択肢:\n"
+    f"{json.dumps(choices, ensure_ascii=False)}\n\n"
 
-正解: {correct}
-学生の選択: {selected}
+    f"正解: {correct}\n"
+    f"学生の選択: {selected}\n\n"
 
-参考（簡潔な理由）:
-{short_reason}
+    "参考（簡潔な理由）:\n"
+    f"{short_reason}\n\n"
 
-【出力要件（厳守）】
-出力はJSONオブジェクト1つのみ。JSON以外の文字は禁止。
-キーは以下のみ：
-- missing_level（1〜3の整数。推定）
-- missing_type（"definition"|"mechanism"|"comparison"|"application"）
-- concept（欠けている可能性のある概念。短文）
-- summary（学生向け1〜3文。断定禁止、「〜の可能性があります」を用いる。叱責禁止。）
-- next_hint（次に取り組むべき方向性を短文で）
+    "【出力要件（厳守）】\n"
+    "出力はJSONオブジェクト1つのみ。JSON以外の文字は禁止。\n"
+    "キーは以下のみ：\n"
+    "- missing_level（1〜3の整数。推定）\n"
+    "- missing_type（\"definition\"|\"mechanism\"|\"comparison\"|\"application\"）\n"
+    "- concept（欠けている可能性のある概念。短文）\n"
+    "- summary（学生向け1〜3文。断定禁止、「〜の可能性があります」を用いる。叱責禁止。）\n"
+    "- next_hint（次に取り組むべき方向性を短文で）\n\n"
 
-補足：
-・missing_levelは、戻すレベル/戻す概念の情報も参考にしつつ推定してください。
-・暗記ではなく因果や概念のつながりに言及してください。
-"""
+    "補足：\n"
+    "・missing_levelは、戻すレベル/戻す概念の情報も参考にしつつ推定してください。\n"
+    "・暗記ではなく因果や概念のつながりに言及してください。"
+)
+
     
     model = genai.GenerativeModel(
         "gemini-2.5-flash-lite",
@@ -699,6 +699,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
