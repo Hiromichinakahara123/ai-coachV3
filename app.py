@@ -687,18 +687,23 @@ def main():
         if st.button("この学生の進捗をリセット（この問題セットのみ）"):
             conn = get_conn()
             cur = conn.cursor()
-            cur.execute("""
-            DELETE FROM answers
-            WHERE student_id = %s
-              AND question_id IN (SELECT id FROM questions WHERE question_set_id = %s)
-            """, (student_id, st.session_state.question_set_id))
+            cur.execute(
+                "DELETE FROM answers "
+                "WHERE student_id = %s "
+                "AND question_id IN ("
+                "  SELECT id FROM questions WHERE question_set_id = %s"
+                ")",
+                (student_id, st.session_state.question_set_id)
+            )
             conn.commit()
             st.success("リセットしました。")
             st.rerun()
 
 
+
 if __name__ == "__main__":
     main()
+
 
 
 
