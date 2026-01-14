@@ -57,7 +57,7 @@ def init_db():
     # --- ここから追加・修正 ---
     # answersテーブルを一度削除して、最新の状態（coach_jsonがある状態）で作り直させます
     # ※これを実行すると、今までの「解答履歴」は削除されるので注意してください
-    cur.execute("DROP TABLE IF EXISTS answers CASCADE") 
+    #cur.execute("DROP TABLE IF EXISTS answers CASCADE") 
     # -----------------------
     
     cur.execute("""
@@ -575,23 +575,28 @@ def main():
         st.markdown("### 問題")
         st.write(q["question_text"])
 
-        # ---------- 選択肢（LaTeX対応） ----------
-        choices = q["choices_json"]
-        # 万が一文字列で取得された場合にも対応する安全な書き方
-        if isinstance(choices, str):
+       # ---------- 選択肢（安全な読み込みとLaTeX対応） ----------
+        choices_raw = q.get("choices_json")
+        
+        # 1. 文字列（str）として届いた場合は辞書に変換
+        if isinstance(choices_raw, str):
             import json
-            choices = json.loads(choices)
+            try:
+                choices = json.loads(choices_raw)
+            except Exception:
+                choices = {}
+        # 2. すでに辞書（dict）の場合はそのまま使う
+        elif isinstance(choices_raw, dict):
+            choices = choices_raw
+        # 3. それ以外（Noneなど）の場合は空の辞書にする
+        else:
+            choices = {}
 
         st.markdown("### 選択肢")
         for k in ["1", "2", "3", "4", "5"]:
-            # LaTeXの$...$が綺麗にレンダリングされる
-            st.markdown(f"**{k}.** {choices.get(k,'')}")
-
-        selected = st.radio(
-            "解答（番号を選択）",
-            options=["1", "2", "3", "4", "5"],
-            key=f"choice_{q['id']}"
-        )
+            # choices が辞書であることを確認してから .get() を呼ぶ
+            choice_text = choices.get(k, "") if isinstance(choices, dict) else ""
+            st.markdown(f"**{k}.** {choice_text}")
 
       # ---------- 解答処理 ----------
         if st.button("解答する"):
@@ -733,6 +738,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
