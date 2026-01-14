@@ -39,7 +39,7 @@ EXPECTED_COLUMNS = [
 
 
 # =====================================================
-# DB (SQLite)
+# DB (PostgreSQL / Neon)
 # =====================================================
 #@st.cache_resource
 def get_conn():
@@ -586,7 +586,7 @@ def main():
       # ---------- 解答処理 ----------
         if st.button("解答する"):
             correct = str(q["correct"])
-            is_correct = (opt == correct)
+            is_correct = (selected == correct)
 
             coach = None
             if is_correct:
@@ -602,7 +602,7 @@ def main():
                     question_text=q["question_text"],
                     choices=choices,
                     correct=correct,
-                    selected=opt,
+                    selected=selected,
                     level=level,
                     primary_concept=q.get("primary_concept", ""),
                     required_understanding=q.get("required_understanding", ""),
@@ -721,6 +721,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
