@@ -57,7 +57,7 @@ def init_db():
     # --- ここから追加・修正 ---
     # answersテーブルを一度削除して、最新の状態（coach_jsonがある状態）で作り直させます
     # ※これを実行すると、今までの「解答履歴」は削除されるので注意してください
-    #cur.execute("DROP TABLE IF EXISTS answers CASCADE") 
+    cur.execute("DROP TABLE IF EXISTS answers CASCADE") 
     # -----------------------
     
     cur.execute("""
@@ -744,6 +744,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
