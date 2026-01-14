@@ -570,7 +570,11 @@ def main():
         st.write(q["question_text"])
 
         # ---------- 選択肢（LaTeX対応） ----------
-        choices = json.loads(q["choices_json"])
+        choices = q["choices_json"]
+        # 万が一文字列で取得された場合にも対応する安全な書き方
+        if isinstance(choices, str):
+            import json
+            choices = json.loads(choices)
 
         st.markdown("### 選択肢")
         for k in ["1", "2", "3", "4", "5"]:
@@ -693,8 +697,10 @@ def main():
             coach = {}
             if r["coach_json"]:
                 try:
-                    coach = json.loads(r["coach_json"])
-                except Exception:
+                    coach = r["coach_json"]
+                    if isinstance(coach, str) and coach:
+                        coach = json.loads(coach)
+                    except Exception:
                     coach = {}
             ts = r["answered_at"]
             st.write(f"- {ts} / Level {int(r['level'])} / 概念: {r['primary_concept']} / {'○' if r['is_correct']==1 else '×'}")
@@ -721,6 +727,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
