@@ -575,28 +575,29 @@ def main():
         st.markdown("### 問題")
         st.write(q["question_text"])
 
-       # ---------- 選択肢（安全な読み込みとLaTeX対応） ----------
-        choices_raw = q.get("choices_json")
+       # ---------- 選択肢（デバッグ機能付き） ----------
+        choices = q.get("choices_json")
         
-        # 1. 文字列（str）として届いた場合は辞書に変換
-        if isinstance(choices_raw, str):
-            import json
+        # もし文字列で届いていたら辞書に変換
+        if isinstance(choices, str):
             try:
-                choices = json.loads(choices_raw)
-            except Exception:
+                import json
+                choices = json.loads(choices)
+            except:
                 choices = {}
-        # 2. すでに辞書（dict）の場合はそのまま使う
-        elif isinstance(choices_raw, dict):
-            choices = choices_raw
-        # 3. それ以外（Noneなど）の場合は空の辞書にする
-        else:
-            choices = {}
+
+        # 【デバッグ用】中身が空なら警告を出す（正しく動いたら消してOKです）
+        if not choices:
+            st.warning("選択肢データが空です。Excelを再アップロードしてみてください。")
+            # st.write("DBの中身:", q) # 困ったらこれを有効にして中身を確認
 
         st.markdown("### 選択肢")
         for k in ["1", "2", "3", "4", "5"]:
-            # choices が辞書であることを確認してから .get() を呼ぶ
-            choice_text = choices.get(k, "") if isinstance(choices, dict) else ""
-            st.markdown(f"**{k}.** {choice_text}")
+            # キーが "1"（文字列）でも 1（数値）でも取得できるようにする
+            val = choices.get(k) or choices.get(int(k)) or ""
+            
+            # LaTeXが含まれていても表示できるように markdown を使用
+            st.markdown(f"**{k}.** {val}")
 
       # ---------- 解答処理 ----------
         if st.button("解答する"):
@@ -738,6 +739,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
