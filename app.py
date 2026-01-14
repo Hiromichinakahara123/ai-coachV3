@@ -700,7 +700,7 @@ def main():
                     coach = r["coach_json"]
                     if isinstance(coach, str) and coach:
                         coach = json.loads(coach)
-                    except Exception:
+                except Exception:
                     coach = {}
             ts = r["answered_at"]
             st.write(f"- {ts} / Level {int(r['level'])} / 概念: {r['primary_concept']} / {'○' if r['is_correct']==1 else '×'}")
@@ -727,6 +727,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
