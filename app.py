@@ -206,15 +206,14 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
             """,
             (
                 question_set_id, qid, qtext,
-                json.dumps(choices, ensure_ascii=False),
-                correct, level,
+                correct, correct, level,
                 primary_concept, related_concepts,
                 required_understanding, fallback_level,
                 fallback_concept, short_reason,
                 teacher_memo, explanation
             )
         )
-
+        inserted += 1
 
     conn.commit()
     return inserted
@@ -243,9 +242,9 @@ def log_answer(student_id: int, question_id: int, selected: str, is_correct: boo
         student_id,
         question_id,
         selected,
-        1 if is_correct else 0,
+        is_correct,  # 1 if is_correct else 0 ではなく、True/Falseをそのまま渡せます
         datetime.now(APP_TZ),
-        json.dumps(coach_json, ensure_ascii=False) if coach_json else None
+        coach_json   # 【重要】json.dumps() を削除し、辞書（またはNone）をそのまま渡す
     ))
     conn.commit()
 
@@ -727,6 +726,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
