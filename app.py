@@ -656,7 +656,7 @@ def main():
                         "concept": q.get("primary_concept", ""),
                         }
                     else:
-====
+
                     if is_correct:
                         # 正解時もAIにコメントさせる（APIキーがある場合のみ）
                         if configure_gemini():
@@ -785,6 +785,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
