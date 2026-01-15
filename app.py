@@ -650,11 +650,34 @@ def main():
                     is_correct = (selected == correct)
 
                     coach = None
-                    if is_correct:
+                     if is_correct:
                         coach = {
                         "summary": "正解です！次は同じ概念を少し条件を変えて確認するか、上のレベルに進みましょう。",
                         "concept": q.get("primary_concept", ""),
                         }
+                    else:
+====
+                    if is_correct:
+                        # 正解時もAIにコメントさせる（APIキーがある場合のみ）
+                        if configure_gemini():
+                            try:
+                                prompt = (
+                                    f"学生が問題を正解しました。短い称賛と、この問題の重要ポイント（{q.get('primary_concept', '')}）についての簡潔な補足を1〜2文でお願いします。\n"
+                                    f"問題: {q['question_text']}\n"
+                                    f"正解: {q['correct']}\n"
+                                    "出力はJSON: {\"summary\": \"...\", \"next_hint\": \"次のレベルへ\"} の形式のみ。"
+                                )
+                                model = genai.GenerativeModel("gemini-2.5-flash-lite")
+                                text = model.generate_content(prompt).text.strip()
+                                data = safe_json_extract(text)
+                                if isinstance(data, dict):
+                                    coach = data
+                                else:
+                                    coach = {"summary": "お見事です！この調子で進みましょう。"}
+                            except:
+                                coach = {"summary": "正解です！（AI通信エラーのため標準コメント表示）"}
+                        else:
+                            coach = {"summary": "正解です！次は同じ概念を少し条件を変えて確認するか、上のレベルに進みましょう。"}
                     else:
                         with st.spinner("AIコーチが診断中..."):
                             coach = ai_coach_diagnose(
@@ -762,6 +785,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
