@@ -250,9 +250,10 @@ def log_answer(student_id: int, question_id: int, selected: str, is_correct: boo
         student_id,
         question_id,
         selected,
-        is_correct,  # 1 if is_correct else 0 ではなく、True/Falseをそのまま渡せます
+        is_correct,
         datetime.now(APP_TZ),
-        coach_json   # 【重要】json.dumps() を削除し、辞書（またはNone）をそのまま渡す
+        # 辞書をJSON文字列に変換して渡す（Noneの場合はNone）
+        json.dumps(coach_json, ensure_ascii=False) if coach_json is not None else None
     ))
     conn.commit()
 
@@ -761,6 +762,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
