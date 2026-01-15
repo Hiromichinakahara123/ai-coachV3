@@ -650,7 +650,7 @@ def main():
                     is_correct = (selected == correct)
 
                     coach = None
-                     if is_correct:
+                    if is_correct:
                         coach = {
                         "summary": "正解です！次は同じ概念を少し条件を変えて確認するか、上のレベルに進みましょう。",
                         "concept": q.get("primary_concept", ""),
@@ -785,6 +785,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
