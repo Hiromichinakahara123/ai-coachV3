@@ -213,7 +213,8 @@ def upsert_questions(question_set_id: int, df: pd.DataFrame) -> int:
             """,
             (
                 question_set_id, qid, qtext,
-                correct, correct, level,
+                json.dumps(choices, ensure_ascii=False),  # ★ここを修正しました
+                correct, level,
                 primary_concept, related_concepts,
                 required_understanding, fallback_level,
                 fallback_concept, short_reason,
@@ -760,6 +761,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
