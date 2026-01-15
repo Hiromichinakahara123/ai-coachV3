@@ -536,6 +536,7 @@ def main():
                 st.error("読み込みに失敗しました")
                 st.exception(e)
 
+
     with tab2:
         st.subheader("問題演習（自動選題）")
 
@@ -550,11 +551,11 @@ def main():
 
         student_id = get_or_create_student(student_key)
 
-        # Load questions if needed
+         # 問題のロード
         if not st.session_state.questions:
             st.session_state.questions = load_questions(st.session_state.question_set_id)
 
-        # Pick current if none
+        # 現在の問題の選定
         if st.session_state.current is None:
             nxt = pick_next_question(
                 st.session_state.questions,
@@ -569,22 +570,21 @@ def main():
         if q is None:
             st.success("🎉 すべての問題が終了しました！")
             st.stop()
+    
+        if "current_result" not in st.session_state:
+            st.session_state.current_result = None
 
         level = int(q.get("level", 4))
         st.caption(f"学習段階：{level_label(level)}　/　主概念：{q.get('primary_concept','')}")
         st.markdown("### 問題")
         st.write(q["question_text"])
 
-      # ---------- 選択肢（Noneチェックと型変換を統合） ----------
-        # DBから取得（Noneの可能性がある）
+        # ---------- 選択肢処理 ----------
         choices_raw = q.get("choices_json")
-
-        # 1. 確実に辞書型(dict)に変換する
         if choices_raw is None:
             choices = {}
         elif isinstance(choices_raw, str):
             try:
-                import json
                 choices = json.loads(choices_raw)
             except:
                 choices = {}
@@ -593,80 +593,96 @@ def main():
         else:
             choices = {}
 
-        # 2. 選択肢が空の場合の警告
         if not choices:
-            st.warning("この問題には選択肢データが登録されていません。Excelの列名が「選択肢１」〜「選択肢５」になっているか確認し、再アップロードしてください。")
+            st.warning("選択肢データが空です。")
+            st.stop()
 
-        st.markdown("### 選択肢")
-        # 3. ループ内で安全に値を取得
-        for k in ["1", "2", "3", "4", "5"]:
-            # 文字列のキー "1" でも数値の 1 でも探せるようにする
-            val = choices.get(k) or choices.get(int(k)) or ""
-            st.markdown(f"**{k}.** {val}")
+        options = [f"{k}. {v}" for k, v in choices.items()]
+        choice_label = st.radio(
+        "選択肢を選んでください：", 
+            options, 
+            index=None,
+            key=f"radio_{q['id']}",
+            disabled=(st.session_state.current_result is not None)
+        )
+    
+        selected = choice_label.split(".")[0] if choice_label else None
 
-      # ---------- 解答処理 ----------
-        if st.button("解答する"):
-            correct = str(q["correct"])
-            is_correct = (selected == correct)
-
-            coach = None
-            if is_correct:
-                coach = {
-                    "summary": "正解です。次は同じ概念を少し条件を変えて確認するか、1段階上の問題に進みましょう。",
-                    "missing_level": None,
-                    "missing_type": None,
-                    "concept": q.get("primary_concept", ""),
-                    "next_hint": "次の問題へ"
-                }
-            else:
-                coach = ai_coach_diagnose(
-                    question_text=q["question_text"],
-                    choices=choices,
-                    correct=correct,
-                    selected=selected,
-                    level=level,
-                    primary_concept=q.get("primary_concept", ""),
-                    required_understanding=q.get("required_understanding", ""),
-                    fallback_level=int(q.get("fallback_level") or max(1, level - 1)),
-                    fallback_concept=q.get("fallback_concept", ""),
-                    short_reason=q.get("short_reason", "")
-                )
-
-            log_answer(
-                student_id=student_id,
-                question_id=int(q["id"]),
-                selected=selected,
-                is_correct=is_correct,
-                coach_json=coach
-            )
-            
-            st.session_state.answered_ids.add(int(q["id"]))
-            st.session_state.last_result = {"is_correct": is_correct, "coach": coach}
-            st.session_state.last_question = q
-
-            # pick next
-            st.session_state.current = pick_next_question(
-                st.session_state.questions,
-                st.session_state.answered_ids,
-                st.session_state.last_result,
-                st.session_state.last_question
-            )
-            
-            # show feedback on same run
-            if is_correct:
+        # ---------- 結果表示モード ----------
+        if st.session_state.current_result:
+            res = st.session_state.current_result
+        
+            if res["is_correct"]:
                 st.success("正解です 🎉")
             else:
-                st.error(f"不正解です。正解は「{correct}」です。")
-
+                st.error(f"不正解です。正解は「{q['correct']}」です。")
+        
             st.markdown("### 簡潔な理由")
             st.markdown(q.get("short_reason", "（未記入）"))
 
             st.markdown("### AIコーチング")
-            st.info(coach.get("summary", ""))
+            if res["coach"]:
+                st.info(res["coach"].get("summary", ""))
 
             st.divider()
-            st.rerun()
 
+            if st.button("次の問題へ"):
+                st.session_state.last_result = res
+                st.session_state.last_question = q
+                st.session_state.current = pick_next_question(
+                    st.session_state.questions,
+                    st.session_state.answered_ids,
+                    st.session_state.last_result,
+                    st.session_state.last_question
+                )
+                st.session_state.current_result = None
+                st.rerun()
+
+        # ---------- 未解答モード ----------
+        else:
+            if st.button("解答する"):
+                if not selected:
+                    st.warning("選択肢を選んでください。")
+                else:
+                    correct = str(q["correct"])
+                    is_correct = (selected == correct)
+
+                    coach = None
+                    if is_correct:
+                        coach = {
+                        "summary": "正解です！次は同じ概念を少し条件を変えて確認するか、上のレベルに進みましょう。",
+                        "concept": q.get("primary_concept", ""),
+                        }
+                    else:
+                        with st.spinner("AIコーチが診断中..."):
+                            coach = ai_coach_diagnose(
+                                question_text=q["question_text"],
+                                choices=choices,
+                                correct=correct,
+                                selected=selected,
+                                level=level,
+                                primary_concept=q.get("primary_concept", ""),
+                                required_understanding=q.get("required_understanding", ""),
+                                fallback_level=int(q.get("fallback_level") or max(1, level - 1)),
+                                fallback_concept=q.get("fallback_concept", ""),
+                                short_reason=q.get("short_reason", "")
+                            )
+
+                    log_answer(
+                        student_id=student_id,
+                        question_id=int(q["id"]),
+                        selected=selected,
+                        is_correct=is_correct,
+                        coach_json=coach
+                    )
+
+                    st.session_state.answered_ids.add(int(q["id"]))
+                    st.session_state.current_result = {"is_correct": is_correct, "coach": coach}
+                    st.rerun()
+    
+    
+
+    
     with tab3:
         st.subheader("成績・コーチング（履歴）")
 
@@ -744,6 +760,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
